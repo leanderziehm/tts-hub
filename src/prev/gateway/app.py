@@ -4,9 +4,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 
-from db import SessionLocal, engine
-from models import Base, User
-from schemas import UserCreateResponse
+from src.prev.gateway.db import SessionLocal, engine
+from src.prev.gateway.models import Base, User
+from src.prev.gateway.schemas import UserCreateResponse
 
 app = FastAPI(title="TTS Gateway")
 INITIAL_CREDITS = int(os.getenv("INITIAL_CREDITS", "100"))

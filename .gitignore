@@ -1,3 +1,9 @@
+
+# input 
+output
+*.pdf
+pdfs
+out
 _old/
 tts_history.json
 tts_outputs/
