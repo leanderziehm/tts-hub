@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TTS Demo</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 40px auto;
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+}
+
+#status {
+    margin-top: 20px;
+    white-space: pre-wrap;
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+</style>
+</head>
+<body>
+
+<h1>TTS Demo</h1>
+
+<textarea id="text">
+Hello world from FastAPI and espeak-ng.
+</textarea>
+
+<br>
+
+<button id="generate">
+Generate Speech
+</button>
+
+<div id="status"></div>
+
+<script>
+const API_BASE = "http://localhost:8000";
+
+const statusBox = document.getElementById("status");
+
+function log(message) {
+    statusBox.textContent += message + "\n";
+}
+
+document
+.getElementById("generate")
+.addEventListener("click", async () => {
+
+    statusBox.textContent = "";
+
+    log("Submitting job...");
+
+    const response = await fetch(
+        `${API_BASE}/v1/speech`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                text: document.getElementById("text").value,
+                voice: "en-us"
+            })
+        }
+    );
+
+    const job = await response.json();
+
+    log(`Job created: ${job.job_id}`);
+
+    const sse = new EventSource(
+        `${API_BASE}/v1/jobs/${job.job_id}/events`
+    );
+
+    sse.addEventListener(
+        "tts.completed",
+        (e) => {
+            log("✓ TTS generation complete");
+        }
+    );
+
+    sse.addEventListener(
+        "mp3.completed",
+        (e) => {
+            log("✓ MP3 conversion complete");
+        }
+    );
+
+    sse.addEventListener(
+        "file.ready",
+        (e) => {
+            const data = JSON.parse(e.data);
+
+            log("✓ Download ready");
+
+            const a = document.createElement("a");
+
+            a.href = API_BASE + data.download_url;
+            a.download = "";
+
+            document.body.appendChild(a);
+
+            a.click();
+
+            document.body.removeChild(a);
+
+            sse.close();
+        }
+    );
+
+    sse.addEventListener(
+        "job.failed",
+        (e) => {
+            const data = JSON.parse(e.data);
+
+            log(
+                "ERROR: " + data.error
+            );
+
+            sse.close();
+        }
+    );
+});
+</script>
+
+</body>
+</html>
